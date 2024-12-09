@@ -2,11 +2,6 @@ use std::collections::VecDeque;
 
 fn main() {
     let input = include_str!("../data/input.txt").trim();
-    let input = if input.len() % 2 == 0 {
-        &input[..input.len() - 1]
-    } else {
-        input
-    };
 
     let (free_spaces, file_blocks) = get_blocks(input);
     println!(
@@ -84,8 +79,11 @@ fn unfragmented_checksum(
 ) -> usize {
     let mut checksum = 0;
 
+    let mut search_offsets = [0; 9];
+
     while let Some((file_idx, file_offset, file_length)) = file_blocks.pop() {
         let mut new_offset = file_offset;
+        let mut search_gap = file_length;
 
         for (free_space_offset, free_space_length) in &mut free_spaces {
             if *free_space_length < file_length || *free_space_offset > file_offset {
@@ -93,12 +91,18 @@ fn unfragmented_checksum(
             }
 
             new_offset = *free_space_offset;
+            search_gap = *free_space_length;
 
             *free_space_offset += file_length;
             *free_space_length -= file_length;
 
             break;
         }
+
+        search_offsets
+            .iter_mut()
+            .skip(search_gap - 1)
+            .for_each(|offset| *offset = new_offset.max(*offset));
 
         for i in new_offset..new_offset + file_length {
             checksum += i * file_idx;
